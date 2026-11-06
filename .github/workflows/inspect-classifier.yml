@@ -1,0 +1,24 @@
+name: Inspect bundled classification archive
+on:
+  push:
+    branches: [portfolio-web-app]
+  workflow_dispatch:
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show archive contents
+        run: |
+          python - <<'PY'
+          import zipfile
+          z=zipfile.ZipFile('cats_and_dogs.zip')
+          files=z.infolist()
+          print("ARCHIVE_ENTRIES",len(files))
+          for f in files[:130]:
+              print("ENTRY",f.filename,f.file_size)
+          print("MODEL_CANDIDATES")
+          for f in files:
+              if f.filename.lower().endswith(('.keras','.h5','.hdf5','.pt','.pth','.onnx','.joblib','.pkl','.ipynb','.py','.json','.weights')):
+                  print("CANDIDATE",f.filename,f.file_size)
+          PY
