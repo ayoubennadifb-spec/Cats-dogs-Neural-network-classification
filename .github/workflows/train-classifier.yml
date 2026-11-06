@@ -1,0 +1,32 @@
+name: Train and publish cat-dog neural network
+on:
+  push:
+    branches: [portfolio-web-app]
+    paths:
+      - train_model.py
+      - .github/workflows/train-classifier.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image and ML dependencies
+        run: pip install numpy==2.1.3 scikit-learn==1.8.0 pillow==11.3.0 joblib==1.4.2
+      - name: Train model and evaluate on stratified holdout
+        run: OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python train_model.py
+      - name: Commit trained inference artifact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add models/cats_dogs_mlp.joblib models/model_info.json
+          git commit -m "Train compact cat-dog MLP classifier for live portfolio demo" || exit 0
+          git push origin HEAD:portfolio-web-app
