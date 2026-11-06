@@ -1,0 +1,29 @@
+name: Smoke test cat dog classifier
+on:
+  push:
+    branches: [portfolio-web-app, main]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Test model prediction and app rendering
+        run: |
+          python -m py_compile app.py train_model.py
+          python - <<'PY'
+          import joblib, numpy as np
+          from streamlit.testing.v1 import AppTest
+          artifact=joblib.load("models/cats_dogs_mlp.joblib")
+          x=np.zeros((1,32*32*3),dtype=np.float32)
+          probs=artifact["estimator"].predict_proba(x)[0]
+          assert len(probs)==2 and abs(float(sum(probs))-1)<1e-4
+          t=AppTest.from_file("app.py",default_timeout=70).run()
+          assert not t.exception,t.exception
+          print("Classifier and app passed")
+          PY
